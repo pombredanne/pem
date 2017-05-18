@@ -1,8 +1,36 @@
+from setuptools import setup, find_packages
+
 import codecs
 import os
 import re
 
-from setuptools import setup
+
+###############################################################################
+
+NAME = "pem"
+KEYWORDS = ["pyopenssl", "ssl", "tls", "pem", "cryptography", "twisted"]
+CLASSIFIERS = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 3.5",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+INSTALL_REQUIRES = []
+EXTRAS_REQUIRE = {}
+
+###############################################################################
+
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 def read(*parts):
@@ -10,48 +38,64 @@ def read(*parts):
     Build an absolute path from *parts* and and return the contents of the
     resulting file.  Assume UTF-8 encoding.
     """
-    here = os.path.abspath(os.path.dirname(__file__))
-    with codecs.open(os.path.join(here, *parts), 'rb', 'utf-8') as f:
+    with codecs.open(os.path.join(HERE, *parts), "rb", "utf-8") as f:
         return f.read()
 
+try:
+    PACKAGES
+except NameError:
+    PACKAGES = find_packages(where="src")
 
-def find_version(*file_paths):
+try:
+    META_PATH
+except NameError:
+    META_PATH = os.path.join(HERE, "src", NAME, "__init__.py")
+finally:
+    META_FILE = read(META_PATH)
+
+
+def find_meta(meta):
     """
-    Build a path from *file_paths* and search for a ``__version__``
-    string inside.
+    Extract __*meta*__ from META_FILE.
     """
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+    meta_match = re.search(
+        r"^__{meta}__ = ['\"]([^'\"]*)['\"]".format(meta=meta),
+        META_FILE, re.M
+    )
+    if meta_match:
+        return meta_match.group(1)
+    raise RuntimeError("Unable to find __{meta}__ string.".format(meta=meta))
 
 
-setup(
-    name='pem',
-    version=find_version("pem.py"),
-    description='Parse and split PEM files painlessly.',
-    long_description=(read('README.rst') + '\n\n' +
-                      read('HISTORY.rst') + '\n\n' +
-                      read('AUTHORS.rst')),
-    url='https://github.com/hynek/pem/',
-    license="MIT",
-    author="Hynek Schlawack",
-    author_email='hs@ox.cx',
-    py_modules=['pem', 'test_pem'],
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Natural Language :: English',
-        'License :: OSI Approved :: MIT License',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-    ],
+URI = find_meta("uri")
+LONG = (
+    read("README.rst") + "\n\n" +
+    "Release Information\n" +
+    "===================\n\n" +
+    re.search("(\d{2}.\d.\d \(.*?\)\n.*?)\n\n\n",
+              read("CHANGELOG.rst"), re.S).group(1) +
+    "\n\n`Full changelog " +
+    "<{uri}en/stable/changelog.html>`_.\n\n".format(uri=URI) +
+    read("AUTHORS.rst")
 )
+
+if __name__ == "__main__":
+    setup(
+        name=NAME,
+        description=find_meta("description"),
+        license=find_meta("license"),
+        url=URI,
+        version=find_meta("version"),
+        author=find_meta("author"),
+        author_email=find_meta("email"),
+        maintainer=find_meta("author"),
+        maintainer_email=find_meta("email"),
+        long_description=LONG,
+        keywords=KEYWORDS,
+        packages=PACKAGES,
+        package_dir={"": "src"},
+        classifiers=CLASSIFIERS,
+        install_requires=INSTALL_REQUIRES,
+        extras_require=EXTRAS_REQUIRE,
+        zip_safe=False,
+    )

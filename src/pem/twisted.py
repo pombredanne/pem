@@ -1,86 +1,43 @@
+# -*- coding: utf-8 -*-
+
+"""
+Twisted-specific convenience helpers.
+"""
+
 from __future__ import absolute_import, division, print_function
 
-import codecs
-import re
+import warnings
 
+from OpenSSL.SSL import FILETYPE_PEM
+from twisted.internet import ssl
 
-__version__ = '0.3.0'
-__author__ = 'Hynek Schlawack'
-__license__ = 'MIT'
-__copyright__ = 'Copyright 2014 Hynek Schlawack'
-
-
-class _Base(object):
-    def __init__(self, _pem_str):
-        self.pem_str = _pem_str
-
-    def __str__(self):
-        return self.pem_str
-
-    def __repr__(self):
-        return '<{0}(pem_str={1!r})>'.format(
-            self.__class__.__name__, self.pem_str
-        )
-
-
-class Certificate(_Base):
-    pass
-
-
-class Key(_Base):
-    pass
-
-
-class RSAPrivateKey(Key):
-    pass
-
-
-class DHParameters(_Base):
-    pass
-
-
-_PEM_TO_CLASS = {
-    'CERTIFICATE': Certificate,
-    'RSA PRIVATE KEY': RSAPrivateKey,
-    'DH PARAMETERS': DHParameters,
-}
-_PEM_RE = re.compile(u"""-----BEGIN ({0})-----
-.+?
------END \\1-----
-""".format('|'.join(_PEM_TO_CLASS.keys())), re.DOTALL)
-
-
-def parse(pem_str):
-    """
-    Extract PEM objects from *pem_str*.
-    """
-    return [_PEM_TO_CLASS[match.group(1)](match.group(0))
-            for match in _PEM_RE.finditer(pem_str)]
-
-
-def parse_file(file_name):
-    """
-    Read *file_name* and parse PEM objects from it.
-    """
-    with codecs.open(file_name, 'rb', encoding='utf-8', errors='ignore') as f:
-        return parse(f.read())
+from ._core import parse_file, Certificate, DHParameters, Key
 
 
 def certificateOptionsFromPEMs(pemObjects, **kw):
     """
     Load a CertificateOptions from the given collection of PEM objects
     (already-loaded private keys and certificates).
-    """
-    from OpenSSL.SSL import FILETYPE_PEM
-    from twisted.internet import ssl
 
+    In those PEM objects, identify one private key and its corresponding
+    certificate to use as the primary certificate.  Then use the rest of the
+    certificates found as chain certificates.  Raise a ValueError if no
+    certificate matching a private key is found.
+
+    :return: A TLS context factory using *pemObjects*
+    :rtype: `twisted.internet.ssl.CertificateOptions`_
+
+    .. _`twisted.internet.ssl.CertificateOptions`: \
+        https://twistedmatrix.com/documents/current/api/\
+        twisted.internet.ssl.CertificateOptions.html
+    """
     keys = [key for key in pemObjects if isinstance(key, Key)]
     if not len(keys):
         raise ValueError('Supplied PEM file(s) does *not* contain a key.')
     if len(keys) > 1:
         raise ValueError('Supplied PEM file(s) contains *more* than one key.')
 
-    privateKey = ssl.KeyPair.load(keys[0].pem_str, FILETYPE_PEM)
+    privateKey = ssl.KeyPair.load(str(keys[0]), FILETYPE_PEM)
 
     certs = [cert for cert in pemObjects if isinstance(cert, Certificate)]
     if not len(certs):
@@ -100,9 +57,32 @@ def certificateOptionsFromPEMs(pemObjects, **kw):
 
     primaryCertificate = certificatesByFingerprint.pop(privateKey.keyHash())
 
+    if "dhParameters" in kw:
+        warnings.warn(
+            "Passing DH parameters as a keyword argument instead of a PEM "
+            "object is deprecated as of pem 16.1.0.",
+            DeprecationWarning
+        )
+    else:
+        dhparams = [o for o in pemObjects if isinstance(o, DHParameters)]
+        if len(dhparams) > 1:
+            raise ValueError(
+                "Supplied PEM file(s) contain(s) *more* than one set of DH "
+                "parameters.")
+        elif len(dhparams) == 1:
+            kw["dhParameters"] = DiffieHellmanParameters(str(dhparams[0]))
+
     fakeEDHSupport = "dhParameters" in kw and not _DH_PARAMETERS_SUPPORTED
     if fakeEDHSupport:
         dhParameters = kw.pop("dhParameters")
+
+    if _DH_PARAMETERS_SUPPORTED is False:
+        warnings.warn(
+            "Using pem with Twisted older than 14.0.0 is deprecated as of pem"
+            " 15.0.0.  "
+            "The backport of DiffieHellmanParameters will be removed.",
+            DeprecationWarning
+        )
 
     ctxFactory = ssl.CertificateOptions(
         privateKey=privateKey.original,
@@ -120,13 +100,8 @@ def certificateOptionsFromPEMs(pemObjects, **kw):
 
 def certificateOptionsFromFiles(*pemFiles, **kw):
     """
-    Read all files named by *pemFiles*, and return a Twisted CertificateOptions
-    which can be used to run a TLS server.
-
-    In those PEM files, identify one private key and its corresponding
-    certificate to use as the primary certificate, then use the rest of the
-    certificates found as chain certificates.  Raise a ValueError if no
-    certificate matching a private key is found.
+    Read all files named by *pemFiles*, and parse them using
+    :func:`certificateOptionsFromPEMs`.
     """
     pems = []
     for pemFile in pemFiles:
@@ -182,9 +157,9 @@ class _DiffieHellmanParameters(object):
         return cls(filePath)
 
 
-try:  # pragma: nocover
+try:
     from twisted.internet.ssl import DiffieHellmanParameters
     _DH_PARAMETERS_SUPPORTED = True
-except ImportError:
+except ImportError:  # pragma: nocover
     DiffieHellmanParameters = _DiffieHellmanParameters
     _DH_PARAMETERS_SUPPORTED = False
