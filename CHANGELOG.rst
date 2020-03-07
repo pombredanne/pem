@@ -7,13 +7,204 @@ Versions are year-based with a strict backward compatibility policy.
 The third digit is only for regressions.
 
 
-16.2.0 (UNRELEASED)
+20.2.0 (UNRELEASED)
 -------------------
+
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*none*
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
 
 Changes:
 ^^^^^^^^
 
 *none*
+
+
+----
+
+
+20.1.0 (2020-01-06)
+-------------------
+
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*none*
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
+
+Changes:
+^^^^^^^^
+
+- Carriage returns (``\r``) are now stripped before hashing ``pem`` objects to provide consistent hashes across platforms.
+  `#40 <https://github.com/hynek/pem/issues/40>`_
+
+
+----
+
+
+19.3.0 (2019-10-16)
+-------------------
+
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Python 3.4 is not supported anymore.
+  It has been unsupported by the Python core team for a while now and its PyPI downloads are negligible.
+
+  It's very unlikely that ``pem`` will break under 3.4 anytime soon, but we don't test it anymore.
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
+
+Changes:
+^^^^^^^^
+
+- Added support for ``pem.OpenSSHPrivateKey`` (``OPENSSH PRIVATE KEY``).
+  OpenSSH added a new ``BEGIN`` label when it switched to a proprietary key encoding.
+  `#39 <https://github.com/hynek/pem/pull/39>`_
+
+
+----
+
+
+19.2.0 (2019-08-06)
+-------------------
+
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*none*
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
+
+Changes:
+^^^^^^^^
+
+- Added support for ``pem.ECPrivateKey`` (``EC PRIVATE KEY``).
+
+
+----
+
+
+19.1.0 (2019-03-19)
+-------------------
+
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*none*
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
+
+Changes:
+^^^^^^^^
+
+- You can now load encrypted PKCS#8 PEM key as ``pem.Key``.
+- Added support for ``pem.PublicKey`` (``PUBLIC KEY``).
+- Added support for ``pem.RSAPublicKey`` (``RSA PUBLIC KEY``).
+
+
+----
+
+
+18.2.0 (2018-10-09)
+-------------------
+
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*none*
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
+
+Changes:
+^^^^^^^^
+
+- Added ``pem.CertificateRevocationList`` for certificate revocation lists (CRLs).
+  `#32 <https://github.com/hynek/pem/pull/32>`_
+
+
+----
+
+
+18.1.0 (2018-06-23)
+-------------------
+
+
+Backward-incompatible changes:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``pem.certificateOptionsFromFiles()`` and ``pem.certificateOptionsFromPEMs()`` have been removed after three years of deprecation.
+  Please use ``pem.twisted.certificateOptionsFromFiles()`` ``pem.twisted.certificateOptionsFromPEMs()`` instead.
+- Diffie-Hellman support for Twisted older than 14.0 has been removed.
+
+
+Deprecations:
+^^^^^^^^^^^^^
+
+*none*
+
+
+Changes:
+^^^^^^^^
+
+- ``pem`` now ships with typing information that can be used by type checkers like `mypy <http://mypy-lang.org>`_.
+- PEM objects now have an ``obj.sha1_hexdigest`` property with the SHA-1 digest of the stored bytes  as a native string.
+  This is the same digest as the one that is used by the PEM objects' ``__repr__``\ s.
+- PEM objects now have an ``obj.as_text()`` method that returns the PEM-encoded content as unicode, always.
+
+
+----
+
+
+17.1.0 (2017-08-10)
+-------------------
+
+
+Changes:
+^^^^^^^^
+
+- Added ``pem.CertificateRequest`` for `certificate signing requests <https://en.wikipedia.org/wiki/Certificate_signing_request>`_.
+  `#29 <https://github.com/hynek/pem/pull/29>`_
 
 
 ----
@@ -28,6 +219,7 @@ Deprecations:
 - Passing ``dhParameters`` to ``pem.twisted.certifateOptionsFromPEMs`` and ``certificateOptionsFromFiles`` is now deprecated;
   instead, include the DH parameters in the PEM objects or files.
 
+
 Backward-incompatible changes:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -38,6 +230,7 @@ Backward-incompatible changes:
   Major Python packages like Django and Twisted dropped Python 2.6 a while ago already.
 
   Python 3.3 never had a significant user base and wasn't part of any distribution's LTS release.
+
 
 Changes:
 ^^^^^^^^
@@ -81,6 +274,7 @@ Deprecations:
   Use their pendants from the ``pem.twisted`` module now.
 - The usage of the backport of ephemeral Diffie-Hellman support is hereby deprecated.
   Nobody should use a Twisted release that is older than 14.0.0 because it contains essential SSL/TLS fixes.
+
 
 Changes:
 ^^^^^^^^
